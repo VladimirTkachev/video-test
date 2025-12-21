@@ -36,3 +36,82 @@
     transform: rotate(360deg);
   }
 }
+
+/* Стили для кнопок зума */
+.zoom-buttons-container {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100% - 40px);
+  padding: 0 10px;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.zoom-buttons-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.zoom-button {
+  padding: 6px 12px;
+  font-size: 12px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  font-weight: normal;
+  min-width: 45px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.zoom-button.active {
+  background-color: #28a745;
+  font-weight: bold;
+}
+
+/* Мобильные устройства */
+@media (max-width: 768px) {
+  .zoom-buttons-container {
+    bottom: 70px;
+    gap: 4px;
+    padding: 0 5px;
+    max-width: calc(100% - 20px);
+  }
+
+  .zoom-button {
+    padding: 5px 10px;
+    font-size: 11px;
+    min-width: 40px;
+    border-radius: 5px;
+  }
+}
+
+/* Очень маленькие экраны */
+@media (max-width: 480px) {
+  .zoom-buttons-container {
+    bottom: 60px;
+    gap: 3px;
+    padding: 0 5px;
+    max-width: calc(100% - 10px);
+  }
+
+  .zoom-button {
+    padding: 4px 8px;
+    font-size: 10px;
+    min-width: 35px;
+    border-radius: 4px;
+  }
+}
