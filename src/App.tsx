@@ -18,7 +18,6 @@ interface ZoomCapabilities {
 
 type FacingMode = 'user' | 'environment';
 
-// Функция для определения мобильного устройства
 const isMobileDevice = (): boolean => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
          (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
@@ -33,26 +32,25 @@ function App() {
     isMobileDevice() ? 'user' : 'environment'
   )
   const [currentZoom, setCurrentZoom] = useState<number>(1)
-  const [zoomCapabilities, setZoomCapabilities] = useState<ZoomCapabilities | null>(null) // Возможности зума камеры
+  const [zoomCapabilities, setZoomCapabilities] = useState<ZoomCapabilities | null>(null)
 
   console.log('videoRef:', videoRef)
 
-  // Функция для получения списка доступных устройств
   const getDevices = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
         console.error('enumerateDevices не поддерживается');
+
         return;
       }
 
-      // Сначала нужно запросить разрешение, иначе deviceId будет пустым
       await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       
       const deviceList = await navigator.mediaDevices.enumerateDevices();
       console.log('Доступные устройства:', deviceList);
       
       const formattedDevices = deviceList.map(device => ({
-        kind: device.kind, // 'videoinput', 'audioinput', 'audiooutput'
+        kind: device.kind,
         label: device.label || 'Устройство без названия',
         deviceId: device.deviceId
       }));
@@ -84,15 +82,14 @@ function App() {
     
     return {
       available: true,
-      x05: min <= 0.5,  // x0.5 доступна если минимум <= 0.5
-      x1: true,          // x1 всегда доступна
-      x2: max >= 2,      // x2 доступна если максимум >= 2
-      x3: max >= 3,      // x3 доступна если максимум >= 3
-      maxZoom: max       // Максимально возможный зум
+      x05: min <= 0.5,
+      x1: true,
+      x2: max >= 2,
+      x3: max >= 3,
+      maxZoom: max
     };
   }
 
-  // Функция для запуска камеры
   const startCamera = async (facingMode: FacingMode, zoomLevel: number = 1) => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -102,7 +99,6 @@ function App() {
         return;
       }
 
-      // Останавливаем предыдущий поток
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       }
@@ -113,14 +109,12 @@ function App() {
         } as MediaTrackConstraints
       };
 
-      // Добавляем зум только для задней камеры
       if (facingMode === 'environment' && zoomLevel !== 1) {
         (constraints.video as MediaTrackConstraints & { zoom?: number }).zoom = zoomLevel;
       }
 
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // Получаем capabilities камеры для определения доступных уровней зума
       const videoTrack = newStream.getVideoTracks()[0];
       
       if (videoTrack && videoTrack.getCapabilities) {
@@ -135,7 +129,6 @@ function App() {
         }
       }
 
-      // Применяем зум через applyConstraints (если поток уже создан и нужно изменить зум)
       if (videoTrack && videoTrack.applyConstraints && facingMode === 'environment' && zoomLevel !== 1) {
         try {
           await videoTrack.applyConstraints({
@@ -143,7 +136,6 @@ function App() {
           } as MediaTrackConstraints);
         } catch (e) {
           console.warn('Не удалось применить зум через applyConstraints:', e);
-          // Пробуем через advanced
           try {
             await videoTrack.applyConstraints({
               advanced: [{ zoom: zoomLevel } as MediaTrackConstraintSet]
@@ -166,18 +158,17 @@ function App() {
     }
   }
 
-  // Функция для переключения зума
   const switchZoom = async (zoomLevel: number) => {
     if (currentFacingMode === 'environment' && streamRef.current) {
       try {
         const videoTrack = streamRef.current.getVideoTracks()[0];
         if (videoTrack && videoTrack.applyConstraints) {
-          // Пробуем применить зум к существующему треку
           try {
             await videoTrack.applyConstraints({
               zoom: zoomLevel
             } as MediaTrackConstraints);
             setCurrentZoom(zoomLevel);
+
             return;
           } catch (e) {
             console.warn('Не удалось применить зум через applyConstraints, пробуем advanced:', e);
@@ -186,13 +177,13 @@ function App() {
                 advanced: [{ zoom: zoomLevel } as MediaTrackConstraintSet]
               } as MediaTrackConstraints);
               setCurrentZoom(zoomLevel);
+
               return;
             } catch (e2) {
               console.warn('Не удалось применить зум, пересоздаём поток:', e2);
             }
           }
         }
-        // Если не удалось применить к существующему треку, пересоздаём поток
         await startCamera('environment', zoomLevel);
       } catch (e) {
         console.error('Ошибка при переключении зума:', e);
@@ -212,15 +203,12 @@ function App() {
 
   useEffect(() => {
     const initCamera = async () => {
-      // Получаем список устройств
       await getDevices();
-      // Запускаем камеру
       await startCamera(currentFacingMode);
     }
 
     initCamera();
 
-    // Очистка при размонтировании компонента
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
@@ -230,7 +218,6 @@ function App() {
 
   const zoomLevels = getAvailableZoomLevels();
 
-  // Определяем, какие кнопки показывать (максимум 4: x0.5, x1, x2/xMax, x3/xMax)
   const getZoomButtons = () => {
     if (!zoomLevels.available || currentFacingMode !== 'environment') {
       return [];
@@ -239,40 +226,31 @@ function App() {
     const buttons = [];
     const maxZoom = zoomLevels.maxZoom;
     
-    // 1. x0.5 (слева от x1, если доступна)
     if (zoomLevels.x05) {
       buttons.push({ level: 0.5, label: 'x0.5' });
     }
     
-    // 2. x1 (всегда в центре, активная по умолчанию)
     buttons.push({ level: 1, label: 'x1' });
     
-    // 3. x2 или максимальный зум (справа от x1)
     if (zoomLevels.x2) {
       buttons.push({ level: 2, label: 'x2' });
     } else if (maxZoom > 1) {
-      // Если x2 недоступна, показываем максимально возможный зум вместо неё
       buttons.push({ level: maxZoom, label: `x${maxZoom.toFixed(1)}` });
     }
     
-    // 4. x3 или максимальный зум (справа от x2)
     if (zoomLevels.x3) {
       buttons.push({ level: 3, label: 'x3' });
     } else if (maxZoom > 2 && !zoomLevels.x2) {
-      // Если x3 недоступна и x2 тоже, но максимум > 2, заменяем предыдущую кнопку на максимум
       if (buttons.length === 3 && buttons[2].level < 2) {
         buttons.pop();
         buttons.push({ level: maxZoom, label: `x${maxZoom.toFixed(1)}` });
       } else if (maxZoom > 3) {
-        // Если максимум > 3, добавляем его как отдельную кнопку
         buttons.push({ level: maxZoom, label: `x${maxZoom.toFixed(1)}` });
       }
     } else if (maxZoom > 3 && zoomLevels.x2) {
-      // Если x2 доступна, но x3 нет, и максимум > 3, показываем максимум вместо x3
       buttons.push({ level: maxZoom, label: `x${maxZoom.toFixed(1)}` });
     }
 
-    // Ограничиваем максимум 4 кнопками
     return buttons.slice(0, 4);
   };
 
@@ -282,8 +260,6 @@ function App() {
     <div className="App">
       <div style={{ position: 'relative' }}>
         <video ref={videoRef} autoPlay playsInline style={{ width: '100%' }}/>
-        
-        {/* Кнопки зума (только для задней камеры) */} 
         {currentFacingMode === 'environment' && zoomLevels.available && zoomButtons.length > 1 && (
           <div className="zoom-buttons-container">
             {zoomButtons.map((btn) => {
