@@ -33,6 +33,7 @@ function App() {
   )
   const [currentZoom, setCurrentZoom] = useState<number>(1)
   const [zoomCapabilities, setZoomCapabilities] = useState<ZoomCapabilities | null>(null)
+  const [isCameraOn, setIsCameraOn] = useState<boolean>(true)
 
   console.log('videoRef:', videoRef)
 
@@ -65,7 +66,19 @@ function App() {
     }
   }
 
-  // Функция для получения доступных уровней зума
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setIsCameraOn(false);
+  }
+
   const getAvailableZoomLevels = () => {
     if (!zoomCapabilities || !zoomCapabilities.zoom) {
       return { 
@@ -152,6 +165,7 @@ function App() {
       
       streamRef.current = newStream;
       setCurrentZoom(zoomLevel);
+      setIsCameraOn(true);
     } catch (e) {
       console.error('Ошибка доступа к камере:', e)
       alert('Не удалось получить доступ к камере. Убедитесь, что вы предоставили разрешение на использование камеры.');
@@ -201,10 +215,20 @@ function App() {
     startCamera(newFacingMode, zoomToUse);
   }
 
+  const toggleCamera = () => {
+    if (isCameraOn) {
+      stopCamera();
+    } else {
+      startCamera(currentFacingMode, currentZoom);
+    }
+  }
+
   useEffect(() => {
     const initCamera = async () => {
       await getDevices();
-      await startCamera(currentFacingMode);
+      if (isCameraOn) {
+        await startCamera(currentFacingMode);
+      }
     }
 
     initCamera();
@@ -214,7 +238,7 @@ function App() {
         streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       }
     };
-  }, [currentFacingMode])
+  }, [currentFacingMode, isCameraOn])
 
   const zoomLevels = getAvailableZoomLevels();
 
@@ -298,6 +322,25 @@ function App() {
           }}
         >
           {currentFacingMode === 'environment' ? '📷 Фронтальная' : '📹 Задняя'}
+        </button>
+      </div>
+      
+      <div style={{ marginTop: '16px' }}>
+        <button
+          onClick={toggleCamera}
+          style={{
+            padding: '10px 20px',
+            fontSize: '14px',
+            backgroundColor: isCameraOn ? '#dc3545' : '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {isCameraOn ? 'Выключить камеру' : 'Включить камеру'}
         </button>
       </div>
       
