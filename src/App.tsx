@@ -1,6 +1,5 @@
 import {useRef, useEffect, useState} from 'react'
 
-import logo from './logo.svg';
 import './App.css';
 
 interface Device {
@@ -30,11 +29,10 @@ function App() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [devices, setDevices] = useState<Device[]>([])
-  // На мобильных устройствах по умолчанию фронтальная камера ('user'), на десктопе - задняя ('environment')
   const [currentFacingMode, setCurrentFacingMode] = useState<FacingMode>(() => 
     isMobileDevice() ? 'user' : 'environment'
   )
-  const [currentZoom, setCurrentZoom] = useState<number>(1) // Текущий уровень зума
+  const [currentZoom, setCurrentZoom] = useState<number>(1)
   const [zoomCapabilities, setZoomCapabilities] = useState<ZoomCapabilities | null>(null) // Возможности зума камеры
 
   console.log('videoRef:', videoRef)
@@ -61,7 +59,6 @@ function App() {
       
       setDevices(formattedDevices);
       
-      // Выводим в консоль отфильтрованные камеры
       const cameras = formattedDevices.filter(d => d.kind === 'videoinput');
       console.log('Доступные камеры:', cameras);
       
@@ -98,10 +95,10 @@ function App() {
   // Функция для запуска камеры
   const startCamera = async (facingMode: FacingMode, zoomLevel: number = 1) => {
     try {
-      // Проверка поддержки mediaDevices API
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error('getUserMedia не поддерживается в этом браузере');
         alert('Ваш браузер не поддерживает доступ к камере. Пожалуйста, используйте современный браузер или убедитесь, что сайт открыт по HTTPS.');
+
         return;
       }
 
@@ -125,9 +122,11 @@ function App() {
 
       // Получаем capabilities камеры для определения доступных уровней зума
       const videoTrack = newStream.getVideoTracks()[0];
+      
       if (videoTrack && videoTrack.getCapabilities) {
         const capabilities = videoTrack.getCapabilities();
         const zoomCap = (capabilities as MediaTrackCapabilities & { zoom?: { min: number; max: number; step: number } }).zoom;
+        
         if (zoomCap && facingMode === 'environment') {
           setZoomCapabilities({ zoom: zoomCap });
           console.log('Zoom capabilities:', zoomCap);
@@ -201,12 +200,13 @@ function App() {
     }
   }
 
-  // Функция для переключения камеры
   const switchCamera = () => {
     const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+
     setCurrentFacingMode(newFacingMode);
-    // При переключении на фронтальную камеру сбрасываем зум на 1
+
     const zoomToUse = newFacingMode === 'environment' ? currentZoom : 1;
+
     startCamera(newFacingMode, zoomToUse);
   }
 
@@ -226,7 +226,7 @@ function App() {
         streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       }
     };
-  }, [])
+  }, [currentFacingMode])
 
   const zoomLevels = getAvailableZoomLevels();
 
@@ -283,7 +283,7 @@ function App() {
       <div style={{ position: 'relative' }}>
         <video ref={videoRef} autoPlay playsInline style={{ width: '100%' }}/>
         
-        {/* Кнопки зума (только для задней камеры) */}
+        {/* Кнопки зума (только для задней камеры) */} 
         {currentFacingMode === 'environment' && zoomLevels.available && zoomButtons.length > 1 && (
           <div className="zoom-buttons-container">
             {zoomButtons.map((btn) => {
