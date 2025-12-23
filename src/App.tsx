@@ -63,6 +63,8 @@ function App() {
       
     } catch (e) {
       console.error('Ошибка при получении списка устройств:', e);
+
+      alert('Не удалось получить доступ к камере. Убедитесь, что вы предоставили разрешение на использование камеры.');
     }
   }
 
@@ -167,7 +169,13 @@ function App() {
       setCurrentZoom(zoomLevel);
       setIsCameraOn(true);
     } catch (e) {
-      console.error('Ошибка доступа к камере:', e)
+      //@ts-ignore
+      if (/Device in use|Could not start video source/i.test(e.message)) {
+        alert('Камера занята другим устройством.');
+
+        return;
+      }
+
       alert('Не удалось получить доступ к камере. Убедитесь, что вы предоставили разрешение на использование камеры.');
     }
   }
@@ -226,6 +234,7 @@ function App() {
   useEffect(() => {
     const initCamera = async () => {
       await getDevices();
+
       if (isCameraOn) {
         await startCamera(currentFacingMode);
       }
