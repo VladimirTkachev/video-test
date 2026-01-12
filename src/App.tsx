@@ -34,6 +34,7 @@ function App() {
   const [currentZoom, setCurrentZoom] = useState<number>(1)
   const [zoomCapabilities, setZoomCapabilities] = useState<ZoomCapabilities | null>(null)
   const [isCameraOn, setIsCameraOn] = useState<boolean>(true)
+  const [textValue, setTextValue] = useState('')
 
   console.log('videoRef:', videoRef)
 
@@ -352,6 +353,10 @@ function App() {
           {isCameraOn ? 'Выключить камеру' : 'Включить камеру'}
         </button>
       </div>
+
+      <input type='text' inputMode='tel' value={textValue} onChange={(e) => {
+        setTextValue(e.target.value)
+      }}/>
       
       <div style={{ padding: '20px', background: '#f5f5f5', marginTop: '20px' }}>
         <h3>Доступные устройства:</h3>
